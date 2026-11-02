@@ -428,12 +428,12 @@ img { max-width: 100%; }
     </g>
   </svg>
 
-  <p class="sub" id="sub">อธิษฐานก่อนนะคะ แล้วแตะเปลวไฟเพื่อเป่าเทียน</p>
+  <p class="sub" id="sub">อธิษฐานก่อนนะคะ แล้วเป่าเทียนได้เลย</p>
   <div id="blowWrap" style="display:flex;flex-direction:column;align-items:center;gap:14px">
-    <button class="blow" id="blow" type="button">เป่าเทียนทั้งหมด</button>
     <button class="micbtn" id="mic" type="button" aria-pressed="false">ใช้ไมค์เป่าจริง ๆ</button>
     <div class="meter" id="meter" hidden><i id="meterFill"></i></div>
-    <p class="hint" id="hint">แตะที่เปลวไฟแต่ละดวง หรือกดปุ่มเพื่อเป่าทีเดียว</p>
+    <button class="blow" id="blow" type="button" hidden>ตัดเค้กกันเถอะ</button>
+    <p class="hint" id="hint">กดปุ่มไมค์แล้วเป่าใส่ไมค์เบา ๆ ได้เลย</p>
   </div>
 
   <div class="sliceWrap" id="sliceWrap" hidden>
@@ -492,6 +492,7 @@ img { max-width: 100%; }
       <g id="crumbs"></g>
     </svg>
     <p class="hint" id="sliceHint">แตะที่เค้กเพื่อกินทีละคำ</p>
+    <button class="blow" id="more" type="button" hidden>ตัดเค้กอีกชิ้น</button>
   </div>
 
   <section class="mail" id="mail" hidden aria-labelledby="mailTitle">
@@ -649,10 +650,11 @@ img { max-width: 100%; }
   var sg = document.createElement('p'); sg.className = 'sign'; sg.textContent = SIGN; paras.appendChild(sg);
   Array.prototype.forEach.call(paras.querySelectorAll('p'), function (p, i) { p.style.animationDelay = (0.1 + i * 0.3) + 's'; });
 
-  var SUB0 = 'อธิษฐานก่อนนะคะ แล้วแตะเปลวไฟเพื่อเป่าเทียน';
-  var HINT0 = 'แตะที่เปลวไฟแต่ละดวง หรือกดปุ่มเพื่อเป่าทีเดียว';
-  var BTN0 = 'เป่าเทียนทั้งหมด';
-  var stage = 'lit', lit = 3, bites = 0;
+  var SUB0 = 'อธิษฐานก่อนนะคะ แล้วเป่าเทียนได้เลย';
+  var HINT0 = 'กดปุ่มไมค์แล้วเป่าใส่ไมค์เบา ๆ ได้เลย';
+  var stage = 'lit', lit = 3, bites = 0, slices = 1, micOK = true;
+  var SLICE_SUBS = ['ชิ้นแรกเป็นของคนพิเศษเลยนะคะ', 'ชิ้นที่สองแล้ว ไม่อ้วนหรอกน่า', 'ชิ้นที่สามแล้วนะ เค้กยังไม่หมดหรอก', 'กินเยอะจัง แต่วันเกิดทั้งทีก็ไม่เป็นไรนะ'];
+  var more = $('more');
   var cutg = $('cutg'), candlesG = $('candles'), dolC = $('dolC');
   var sliceWrap = $('sliceWrap'), slice = $('slice'), bitesG = $('bitesG'), crumbsG = $('crumbs'), pile = $('crumbPile');
   var BITES = [
@@ -672,17 +674,14 @@ img { max-width: 100%; }
     if (lit <= 0) { hint.textContent = ''; setTimeout(candlesOut, 700); }
     else hint.textContent = 'เหลืออีก ' + lit + ' เล่ม';
   }
-  function blowAll() {
-    if (stage !== 'lit') return;
-    flames.forEach(function (f, i) { setTimeout(function () { snuff(i); }, i * 240); });
-  }
   function candlesOut() {
     if (stage !== 'lit') return;
     stage = 'cut';
     stopMic();
+    mic.hidden = true;
     document.body.setAttribute('data-state', 'done');
     sub.textContent = 'ขอให้คำอธิษฐานเป็นจริงนะคะ';
-    blow.textContent = 'ตัดเค้กกันเถอะ';
+    blow.hidden = false;
     hint.textContent = 'แตะปุ่มเพื่อตัดชิ้นแรก';
     confetti();
   }
@@ -693,7 +692,7 @@ img { max-width: 100%; }
     dolC.style.display = 'none';
     cutg.style.display = '';
     $('blowWrap').hidden = true;
-    sub.textContent = 'ชิ้นแรกเป็นของคนพิเศษเลยนะคะ';
+    sub.textContent = SLICE_SUBS[0];
     sliceWrap.hidden = false;
     setTimeout(function () { sliceWrap.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }, 300);
   }
@@ -730,14 +729,32 @@ img { max-width: 100%; }
   function finishEating() {
     pile.style.display = '';
     slice.removeAttribute('tabindex'); slice.removeAttribute('role'); slice.style.cursor = 'default';
-    $('sliceHint').textContent = 'อิ่มแล้ว! ยังมีจดหมายส่งมาถึงอีกฉบับนะคะ';
-    mail.hidden = false;
-    confetti();
-    setTimeout(function () { mail.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }, 600);
+    more.hidden = false;
+    if (mail.hidden) {
+      $('sliceHint').textContent = 'อิ่มแล้ว! ยังมีจดหมายส่งมาถึงอีกฉบับนะคะ หรือจะตัดอีกชิ้นก็ได้';
+      mail.hidden = false;
+      confetti();
+      setTimeout(function () { mail.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }, 600);
+    } else {
+      $('sliceHint').textContent = 'อิ่มแล้ว! ตัดอีกชิ้นได้เรื่อย ๆ เลยนะคะ';
+    }
   }
-  blow.addEventListener('click', function () {
-    if (stage === 'lit') blowAll(); else if (stage === 'cut') cutCake();
-  });
+  function nextSlice() {
+    if (stage !== 'done') return;
+    stage = 'eat'; bites = 0; slices++;
+    while (bitesG.firstChild) bitesG.removeChild(bitesG.firstChild);
+    pile.style.display = 'none';
+    slice.setAttribute('role', 'button'); slice.setAttribute('tabindex', '0'); slice.style.cursor = '';
+    more.hidden = true;
+    sub.textContent = SLICE_SUBS[Math.min(slices - 1, SLICE_SUBS.length - 1)];
+    $('sliceHint').textContent = 'แตะที่เค้กเพื่อกินทีละคำ';
+    sliceWrap.style.animation = 'none';
+    void sliceWrap.offsetWidth;
+    sliceWrap.style.animation = '';
+    sliceWrap.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+  }
+  blow.addEventListener('click', function () { if (stage === 'cut') cutCake(); });
+  more.addEventListener('click', nextSlice);
   flames.forEach(function (f, i) { f.addEventListener('click', function () { if (stage === 'lit') snuff(i); }); });
   slice.addEventListener('mousedown', function (e) { e.preventDefault(); });
   slice.addEventListener('click', bite);
@@ -830,7 +847,11 @@ img { max-width: 100%; }
 
   // ---------- blowing into the microphone ----------
   var mic = $('mic'), meter = $('meter'), meterFill = $('meterFill'), micState = null;
-  if (window.claude || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) mic.hidden = true;
+  if (window.claude || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+    micOK = false; mic.hidden = true;
+    HINT0 = 'แตะที่เปลวไฟแต่ละดวงเพื่อเป่าเทียนได้เลย';
+    hint.textContent = HINT0;
+  }
   function stopMic() {
     if (!micState) return;
     cancelAnimationFrame(micState.raf);
@@ -907,7 +928,8 @@ img { max-width: 100%; }
 
   $('again').addEventListener('click', function () {
     stopMic();
-    stage = 'lit'; lit = 3; bites = 0;
+    stage = 'lit'; lit = 3; bites = 0; slices = 1;
+    more.hidden = true; blow.hidden = true; mic.hidden = !micOK;
     cakeFx.relight();
     candlesG.classList.remove('gone');
     dolC.style.display = '';
@@ -918,7 +940,7 @@ img { max-width: 100%; }
     $('sliceHint').textContent = 'แตะที่เค้กเพื่อกินทีละคำ';
     sliceWrap.hidden = true;
     document.body.removeAttribute('data-state');
-    sub.textContent = SUB0; hint.textContent = HINT0; blow.textContent = BTN0;
+    sub.textContent = SUB0; hint.textContent = HINT0;
     $('blowWrap').hidden = false;
     mail.hidden = true; letter.hidden = true; env.classList.remove('open');
     $('envHint').textContent = 'แตะซองเพื่อเปิดอ่าน';
