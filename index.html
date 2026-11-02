@@ -272,7 +272,6 @@ img { max-width: 100%; }
 
 <main>
   <svg class="bunting" id="bunting" viewBox="0 0 400 62" aria-hidden="true"></svg>
-  <p class="eyebrow">3 พฤศจิกายน</p>
   <h1>สุขสันต์วันเกิด</h1>
   <p class="name" id="name"></p>
 
@@ -653,7 +652,6 @@ img { max-width: 100%; }
   var SUB0 = 'อธิษฐานก่อนนะคะ แล้วเป่าเทียนได้เลย';
   var HINT0 = 'กดปุ่มไมค์แล้วเป่าใส่ไมค์เบา ๆ ได้เลย';
   var stage = 'lit', lit = 3, bites = 0, slices = 1, micOK = true;
-  var SLICE_SUBS = ['ชิ้นแรกเป็นของคนพิเศษเลยนะคะ', 'ชิ้นที่สองแล้ว ไม่อ้วนหรอกน่า', 'ชิ้นที่สามแล้วนะ เค้กยังไม่หมดหรอก', 'กินเยอะจัง แต่วันเกิดทั้งทีก็ไม่เป็นไรนะ'];
   var more = $('more');
   var cutg = $('cutg'), candlesG = $('candles'), dolC = $('dolC');
   var sliceWrap = $('sliceWrap'), slice = $('slice'), bitesG = $('bitesG'), crumbsG = $('crumbs'), pile = $('crumbPile');
@@ -694,7 +692,6 @@ img { max-width: 100%; }
     sfx('cut');
     cutg.style.display = '';
     $('blowWrap').hidden = true;
-    sub.textContent = SLICE_SUBS[0];
     sliceWrap.hidden = false;
     setTimeout(function () { sliceWrap.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); }, 300);
   }
@@ -724,7 +721,6 @@ img { max-width: 100%; }
     sfx(bites === BITES.length - 1 ? 'bigbite' : 'bite');
     b.c.forEach(function (q) { mk('circle', { cx: q[0], cy: q[1], r: q[2], fill: '#000' }, bitesG); });
     crumbBurst(b.at[0], b.at[1]);
-    showPop(MSGS[bites]);
     bites++;
     if (bites >= BITES.length) { stage = 'done'; setTimeout(finishEating, 800); }
     else $('sliceHint').textContent = 'เหลืออีก ' + (BITES.length - bites) + ' คำ';
@@ -751,7 +747,6 @@ img { max-width: 100%; }
     pile.style.display = 'none';
     slice.setAttribute('role', 'button'); slice.setAttribute('tabindex', '0'); slice.style.cursor = '';
     more.hidden = true;
-    sub.textContent = SLICE_SUBS[Math.min(slices - 1, SLICE_SUBS.length - 1)];
     $('sliceHint').textContent = 'แตะที่เค้กเพื่อกินทีละคำ';
     sliceWrap.style.animation = 'none';
     void sliceWrap.offsetWidth;
