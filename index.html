@@ -157,6 +157,8 @@ body[data-state="done"] .calm { display: none; }
   transform: rotate(4deg);
 }
 .sheet .sign { text-align: right; margin-bottom: 0; color: var(--seal); font-weight: 600; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px; }
+.actions .close { margin: 0; }
 .close { display: block; margin: 20px auto 0; font: inherit; font-weight: 600; color: var(--paper-ink); background: transparent; border: 2px solid var(--paper-ink); border-radius: 999px; padding: 8px 24px; min-height: 44px; cursor: pointer; line-height: 1.4; }
 
 /* painted scene */
@@ -511,7 +513,10 @@ img { max-width: 100%; }
 <div class="letter" id="letter" hidden role="dialog" aria-modal="true" aria-labelledby="toLine">
   <div class="sheet" id="sheet">
     <div id="paras"></div>
-    <button class="close" id="close" type="button">พับเก็บ</button>
+    <div class="actions">
+      <button class="close" id="save" type="button">บันทึกเป็นรูป</button>
+      <button class="close" id="close" type="button">พับเก็บ</button>
+    </div>
   </div>
 </div>
 
@@ -1005,6 +1010,74 @@ img { max-width: 100%; }
   env.addEventListener('click', openEnv);
   env.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEnv(); } });
   closeBtn.addEventListener('click', closeLetter);
+
+  // ---------- save the letter as a picture (drawn on a canvas, nothing external needed) ----------
+  function wrapThai(ctx, text, maxW) {
+    var segs = [], lines = [], cur = '', i;
+    if (window.Intl && Intl.Segmenter) {
+      var it = new Intl.Segmenter('th', { granularity: 'word' }).segment(text);
+      for (var s of it) segs.push(s.segment);
+    } else { segs = text.split(''); }
+    for (i = 0; i < segs.length; i++) {
+      var t = cur + segs[i];
+      if (ctx.measureText(t).width > maxW && cur) { lines.push(cur.replace(/\s+$/, '')); cur = segs[i].replace(/^\s+/, ''); }
+      else cur = t;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+  function saveLetter() {
+    var btn = $('save'), W = 1080, PX = 84, LH = 64, FS = 35, TOP = 70, BOT = 70, SC = 2;
+    btn.disabled = true;
+    var ready = (document.fonts && document.fonts.load)
+      ? Promise.all([document.fonts.load('400 ' + FS + 'px Mali'), document.fonts.load('600 ' + FS + 'px Mali')]).catch(function () {})
+      : Promise.resolve();
+    ready.then(function () {
+      var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+      var FAM = "'Mali', 'Sarabun', 'Noto Sans Thai', sans-serif";
+      var maxW = W - PX * 2, rows = [];
+      ctx.font = '600 ' + FS + 'px ' + FAM;
+      wrapThai(ctx, 'ถึง ' + NAME, maxW - 90).forEach(function (l) { rows.push({ t: l, w: 600, c: '#3b2540' }); });
+      rows.push(null);
+      ctx.font = '400 ' + FS + 'px ' + FAM;
+      LINES.forEach(function (p) {
+        wrapThai(ctx, p, maxW).forEach(function (l) { rows.push({ t: l, w: 400, c: '#3b2540' }); });
+        rows.push(null);
+      });
+      rows.push({ t: SIGN, w: 600, c: '#d23f5c', right: true });
+      var H = TOP + rows.length * LH + BOT;
+      cv.width = W * SC; cv.height = H * SC; ctx.scale(SC, SC);
+      ctx.fillStyle = '#fdeef2'; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = 'rgba(210,63,92,.16)'; ctx.lineWidth = 1.5;
+      var y;
+      for (y = TOP + LH - 14; y < H - BOT + 20; y += LH) { ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(W - 40, y); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(210,63,92,.35)'; ctx.lineWidth = 3; ctx.strokeRect(14, 14, W - 28, H - 28);
+      // little heart stamp
+      ctx.save(); ctx.translate(W - 64 - 52, 34); ctx.rotate(4 * Math.PI / 180);
+      ctx.setLineDash([7, 6]); ctx.strokeStyle = 'rgba(210,63,92,.55)'; ctx.lineWidth = 2.5; ctx.strokeRect(0, 0, 76, 90);
+      ctx.setLineDash([]); ctx.translate(38 - 18, 45 - 18); ctx.scale(1.5, 1.5); ctx.fillStyle = '#d23f5c';
+      try { ctx.fill(new Path2D('M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z')); } catch (e) {}
+      ctx.restore();
+      ctx.textBaseline = 'alphabetic';
+      rows.forEach(function (r, i) {
+        if (!r) return;
+        ctx.font = r.w + ' ' + FS + 'px ' + FAM; ctx.fillStyle = r.c;
+        ctx.textAlign = r.right ? 'right' : 'left';
+        ctx.fillText(r.t, r.right ? W - PX : PX, TOP + i * LH + LH - 24);
+      });
+      cv.toBlob(function (blob) {
+        btn.disabled = false;
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'birthday-letter.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+        btn.textContent = 'บันทึกแล้ว ✓';
+        setTimeout(function () { btn.textContent = 'บันทึกเป็นรูป'; }, 2500);
+      }, 'image/png');
+    });
+  }
+  $('save').addEventListener('click', saveLetter);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !letter.hidden) closeLetter(); });
 
   $('again').addEventListener('click', function () {
